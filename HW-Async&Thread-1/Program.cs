@@ -77,7 +77,7 @@ public class ValueExpr(int initVal) : Expr
             // TODO 2:修改操作
             val = value;
             // 在变化后立即开始计算
-            Update();
+            Update().Wait();
         }
     }
 
