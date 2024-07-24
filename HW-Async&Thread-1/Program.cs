@@ -61,6 +61,7 @@ public class ValueExpr(int initVal) : Expr
         get
         {
             // TODO 1:读取操作
+            // 难道不是直接返回嘛？
             return val;
         }
     }
@@ -74,17 +75,22 @@ public class ValueExpr(int initVal) : Expr
         set
         {
             // TODO 2:修改操作
+            val = value;
+            // 在变化后立即开始计算
+            Update();
         }
     }
 
     public override async Task Update()
     {
         // TODO 3:更新操作
+        if (parent != null) await parent.Update();
     }
 
     public override void Register(Expr parent)
     {
         // TODO 4:注册操作
+        this.parent = parent;
     }
 }
 
@@ -100,6 +106,7 @@ public class AddExpr : Expr
         get
         {
             // TODO 5:读取操作
+            val = ExprA.Val + ExprB.Val;
             return val;
         }
     }
@@ -116,10 +123,12 @@ public class AddExpr : Expr
     public override async Task Update()
     {
         // TODO 6:更新操作
+        if (parent != null) await parent.Update();
     }
 
     public override void Register(Expr parent)
     {
         // TODO 7:注册操作
+        this.parent = parent;
     }
 }
