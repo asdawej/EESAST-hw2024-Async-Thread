@@ -79,6 +79,7 @@ public class TimeVariable(int initVal = 0, int lowerLimit = 0, int higherLimit =
     int time = Environment.TickCount;
 
     int speed = initSpeed;
+    readonly object speedLock = new();
     /// <summary>
     /// 变化速度，以毫秒计时
     /// </summary>
@@ -86,17 +87,27 @@ public class TimeVariable(int initVal = 0, int lowerLimit = 0, int higherLimit =
     {
         get
         {
-            // TODO 1:保护speed的读取
-            return speed;
+            lock (speedLock)
+                return speed;
         }
         set
         {
-            // TODO 2:请思考speed的改变如何体现在val的变化上？
-            speed = value;
+            lock (speedLock)
+            {
+                lock (valLock)
+                {
+                    var now = Environment.TickCount;
+                    val += (now - time) * Speed;
+                    time = now;
+                    val = val < LowerLimit ? LowerLimit : val > HigherLimit ? HigherLimit : val;
+                }
+                speed = value;
+            }
         }
     }
 
     int val = initVal;
+    readonly object valLock = new();
     /// <summary>
     /// 变量的值
     /// </summary>
@@ -104,13 +115,22 @@ public class TimeVariable(int initVal = 0, int lowerLimit = 0, int higherLimit =
     {
         get
         {
-            // TODO 3:直接返回val是否是这个变量当前时刻的值？当然，可以有不同实现
-            return val;
+            lock (valLock)
+            {
+                var now = Environment.TickCount;
+                val += (now - time) * Speed;
+                time = now;
+                val = val < LowerLimit ? LowerLimit : val > HigherLimit ? HigherLimit : val;
+                return val;
+            }
         }
         set
         {
-            // TODO 4:保护val的写入
-            val = value;
+            lock (valLock)
+            {
+                val = value;
+                time = Environment.TickCount;
+            }
         }
     }
 }
