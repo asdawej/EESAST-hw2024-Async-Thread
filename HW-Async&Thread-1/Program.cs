@@ -61,7 +61,6 @@ public class ValueExpr(int initVal) : Expr
         get
         {
             // TODO 1:读取操作
-            // 难道不是直接返回嘛？
             return val;
         }
     }
@@ -91,6 +90,7 @@ public class ValueExpr(int initVal) : Expr
     {
         // TODO 4:注册操作
         this.parent = parent;
+        parent.Update();
     }
 }
 
@@ -130,5 +130,6 @@ public class AddExpr : Expr
     {
         // TODO 7:注册操作
         this.parent = parent;
+        parent.Update();
     }
 }
