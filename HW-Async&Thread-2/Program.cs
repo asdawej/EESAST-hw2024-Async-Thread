@@ -63,6 +63,9 @@ public static class Program
 /// <param name="initSpeed">初始变化速度，以毫秒计时</param>
 public class TimeVariable(int initVal = 0, int lowerLimit = 0, int higherLimit = 10000, int initSpeed = 1)
 {
+    object obj = new();
+    object obj_speed = new();
+    object obj_val = new();
     /// <summary>
     /// 变化下限
     /// </summary>
@@ -77,7 +80,6 @@ public class TimeVariable(int initVal = 0, int lowerLimit = 0, int higherLimit =
     /// 思考：如何利用计时起点来完成变量值的更新？
     /// </summary>
     int time = Environment.TickCount;
-
     int speed = initSpeed;
     /// <summary>
     /// 变化速度，以毫秒计时
@@ -86,13 +88,28 @@ public class TimeVariable(int initVal = 0, int lowerLimit = 0, int higherLimit =
     {
         get
         {
+
             // TODO 1:保护speed的读取
-            return speed;
+            lock (obj_speed)
+                return speed;
         }
         set
         {
             // TODO 2:请思考speed的改变如何体现在val的变化上？
-            speed = value;
+            lock (obj_speed)
+            {
+                lock (obj)
+                {
+                    int delta_time = Environment.TickCount - time;
+                    time = Environment.TickCount;
+                    val += delta_time * speed;
+                    speed = value;
+                    if (val < LowerLimit)
+                        val = LowerLimit;
+                    else if (val > HigherLimit)
+                        val = HigherLimit;
+                }
+            }
         }
     }
 
@@ -105,12 +122,26 @@ public class TimeVariable(int initVal = 0, int lowerLimit = 0, int higherLimit =
         get
         {
             // TODO 3:直接返回val是否是这个变量当前时刻的值？当然，可以有不同实现
-            return val;
+            lock (obj_val)
+            {
+                lock (obj)
+                {
+                    int delta_time = Environment.TickCount - time;
+                    time = Environment.TickCount;
+                    val += delta_time * speed;
+                    if (val < LowerLimit)
+                        val = LowerLimit;
+                    else if (val > HigherLimit)
+                        val = HigherLimit;
+                }
+                return val;
+            }
         }
         set
         {
             // TODO 4:保护val的写入
-            val = value;
+            lock (obj_val)
+                val = value;
         }
     }
 }
