@@ -74,17 +74,23 @@ public class ValueExpr(int initVal) : Expr
         set
         {
             // TODO 2:修改操作
+            val = value;
+            // 在变化后立即开始计算
+            Update().Wait();
         }
     }
 
     public override async Task Update()
     {
         // TODO 3:更新操作
+        if (parent != null) await parent.Update();
     }
 
     public override void Register(Expr parent)
     {
         // TODO 4:注册操作
+        this.parent = parent;
+        parent.Update();
     }
 }
 
@@ -116,10 +122,14 @@ public class AddExpr : Expr
     public override async Task Update()
     {
         // TODO 6:更新操作
+        val = ExprA.Val + ExprB.Val;
+        if (parent != null) await parent.Update();
     }
 
     public override void Register(Expr parent)
     {
         // TODO 7:注册操作
+        this.parent = parent;
+        parent.Update();
     }
 }
