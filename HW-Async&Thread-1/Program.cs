@@ -106,7 +106,6 @@ public class AddExpr : Expr
         get
         {
             // TODO 5:读取操作
-            val = ExprA.Val + ExprB.Val;
             return val;
         }
     }
@@ -123,6 +122,7 @@ public class AddExpr : Expr
     public override async Task Update()
     {
         // TODO 6:更新操作
+        val = ExprA.Val + ExprB.Val;
         if (parent != null) await parent.Update();
     }
 
