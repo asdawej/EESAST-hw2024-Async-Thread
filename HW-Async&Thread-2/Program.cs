@@ -141,7 +141,10 @@ public class TimeVariable(int initVal = 0, int lowerLimit = 0, int higherLimit =
         {
             // TODO 4:保护val的写入
             lock (obj_val)
+            {
+                time = Environment.TickCount;
                 val = value;
+            }  
         }
     }
 }
