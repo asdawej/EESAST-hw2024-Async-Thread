@@ -28,6 +28,8 @@ public abstract class Expr
     /// 父结点
     /// </summary>
     protected Expr? parent = null;
+    public bool isright=true;
+    public abstract Expr Parent{get;}
 
     /// <summary>
     /// 表达式的值，只允许返回一个现成的值，可以加锁
@@ -39,7 +41,7 @@ public abstract class Expr
     /// 异步方法，它的作用是启动一个任务，推动结点自身及其父结点更新值
     /// 可以根据自身需求适当修改方法签名
     /// </summary>
-    public abstract Task Update();
+    public abstract Task<int>Update();
 
     /// <summary>
     /// 注册父结点
@@ -64,7 +66,7 @@ public class ValueExpr(int initVal) : Expr
             return val;
         }
     }
-
+    public override Expr Parent => parent;
     /// <summary>
     /// 修改数据
     /// 思考：修改数据后，父结点是否也需要更新？
@@ -74,17 +76,29 @@ public class ValueExpr(int initVal) : Expr
         set
         {
             // TODO 2:修改操作
+            val=value;
+            Expr exp=this;
+            while(exp.Parent!=null)
+            {
+                exp.isright=false;
+                exp=exp.Parent;
+            }
+            exp.Update();
         }
     }
 
-    public override async Task Update()
+    public override async Task<int>Update()
     {
         // TODO 3:更新操作
+        isright=true;
+        return val;
     }
 
     public override void Register(Expr parent)
     {
         // TODO 4:注册操作
+        this.parent=parent;
+        parent.Update();
     }
 }
 
@@ -100,26 +114,44 @@ public class AddExpr : Expr
         get
         {
             // TODO 5:读取操作
+            while(!isright);
             return val;
         }
     }
-
+    public override Expr Parent => parent;
     public Expr ExprA, ExprB;
     public AddExpr(Expr A, Expr B)
     {
         ExprA = A;
         ExprB = B;
         A.Register(this);
-        B.Register(this);
+        B.Register(this); 
     }
 
-    public override async Task Update()
+    public override async Task<int>Update()
     {
         // TODO 6:更新操作
+        val=0;
+        if(ExprA.isright)val+=ExprA.Val;
+        else 
+        {
+            Task<int>ta=ExprA.Update();
+            val+=await ta;
+        }
+        if(ExprB.isright)val+=ExprB.Val;
+        else 
+        {
+            Task<int>tb=ExprB.Update();
+            val+=await tb;
+        }
+        isright=true;
+        return val;
     }
 
     public override void Register(Expr parent)
     {
         // TODO 7:注册操作
+        this.parent=parent;
+        parent.Update();
     }
 }

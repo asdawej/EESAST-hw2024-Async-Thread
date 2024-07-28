@@ -82,17 +82,47 @@ public class TimeVariable(int initVal = 0, int lowerLimit = 0, int higherLimit =
     /// <summary>
     /// 变化速度，以毫秒计时
     /// </summary>
+    static ReaderWriterLockSlim lock_speed=new();
+    static ReaderWriterLockSlim lock_val=new();
     public int Speed
     {
         get
         {
             // TODO 1:保护speed的读取
+            int sp;
+            lock_speed.EnterReadLock();
+            try
+            {
+                sp=speed;
+            }
+            finally{lock_speed.ExitReadLock();}
             return speed;
         }
         set
         {
             // TODO 2:请思考speed的改变如何体现在val的变化上？
-            speed = value;
+            int t_v=Environment.TickCount;
+            int sp=Speed;
+            lock_speed.EnterWriteLock();
+            try{speed = value;}
+            finally{lock_speed.ExitWriteLock();}
+            int va,t;
+            lock_val.EnterReadLock();
+            try
+            {
+                va=val;t=time;
+            }
+            finally{lock_val.ExitReadLock();}
+            lock_val.EnterWriteLock();
+            try
+            {
+                va+=(t_v-t)*sp;
+                if(va>HigherLimit)val=HigherLimit;
+                else if(va<LowerLimit)val=LowerLimit;
+                else val=va;
+                time=t_v;
+            }
+            finally{lock_val.ExitWriteLock();}
         }
     }
 
@@ -105,12 +135,33 @@ public class TimeVariable(int initVal = 0, int lowerLimit = 0, int higherLimit =
         get
         {
             // TODO 3:直接返回val是否是这个变量当前时刻的值？当然，可以有不同实现
-            return val;
+            int timenow=Environment.TickCount;
+            int sp=Speed;
+            int va,t;
+            lock_val.EnterReadLock();
+            try
+            {
+                va=val;t=time;
+            }
+            finally{lock_val.ExitReadLock();}
+            
+            int newval=va+(timenow-t)*sp;
+            if(newval<LowerLimit)return LowerLimit;
+            else if(newval>HigherLimit)return HigherLimit;
+            else return newval;
         }
         set
         {
             // TODO 4:保护val的写入
-            val = value;
+            if(value<LowerLimit)value=LowerLimit;
+            if(value>HigherLimit)value=HigherLimit;
+            lock_val.EnterWriteLock();
+            try
+            {
+                val=value;
+                time=Environment.TickCount;
+            }
+            finally{lock_val.ExitWriteLock();}
         }
     }
 }
