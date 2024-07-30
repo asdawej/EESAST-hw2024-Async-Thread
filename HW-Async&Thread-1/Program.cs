@@ -2,7 +2,7 @@
 
 public class Program
 {
-    public static void Main()
+    public static async Task Main()
     {
         // 测试用例: (a + b) + (c + d)
         // 可以自行修改测试用例
@@ -13,9 +13,17 @@ public class Program
         AddExpr add1 = new(a, b);
         AddExpr add2 = new(c, d);
         AddExpr add3 = new(add1, add2);
-        Console.WriteLine(add3.Val);
+        Console.WriteLine($"Initial Value: {add3.Val}");
+        Console.WriteLine($"Update State: {add3.IsUpdated}");
         a.NewVal = 5;
-        Console.WriteLine(add3.Val);
+        await Task.Delay(500);
+        Console.WriteLine($"Updated Value: {add3.Val}");
+        Console.WriteLine($"Update State: {add3.IsUpdated}");
+
+        b.NewVal = 6;
+        await Task.Delay(500);
+        Console.WriteLine($"Updated(2) Value: {add3.Val}");
+        Console.WriteLine($"Update State: {add3.IsUpdated}");
     }
 }
 
@@ -56,6 +64,7 @@ public abstract class Expr
 public class ValueExpr(int initVal) : Expr
 {
     int val = initVal;
+    bool isUpdated = false;
     public override int Val
     {
         get
@@ -65,6 +74,7 @@ public class ValueExpr(int initVal) : Expr
         }
     }
 
+    public bool IsUpdated => isUpdated;
     /// <summary>
     /// 修改数据
     /// 思考：修改数据后，父结点是否也需要更新？
@@ -74,18 +84,29 @@ public class ValueExpr(int initVal) : Expr
         set
         {
             // TODO 2:修改操作
+            val = value;
+            isUpdated = false;
+            _ = Update();  // 对异步方法调用结果进行忽略
+
         }
     }
 
     public override async Task Update()
     {
         // TODO 3:更新操作
+        await Task.Delay(100);
+        isUpdated = true;
+        parent?.Update();
     }
 
     public override void Register(Expr parent)
     {
         // TODO 4:注册操作
+        this.parent = parent;
+        parent?.Update();
     }
+
+
 }
 
 /// <summary>
@@ -95,6 +116,7 @@ public class ValueExpr(int initVal) : Expr
 public class AddExpr : Expr
 {
     int val = 0;
+    bool isUpdated = false;
     public override int Val
     {
         get
@@ -103,6 +125,8 @@ public class AddExpr : Expr
             return val;
         }
     }
+
+    public bool IsUpdated => isUpdated;
 
     public Expr ExprA, ExprB;
     public AddExpr(Expr A, Expr B)
@@ -116,10 +140,23 @@ public class AddExpr : Expr
     public override async Task Update()
     {
         // TODO 6:更新操作
+        await Task.Delay(100);
+        isUpdated = true;
+        Compute();
+        parent?.Update();
     }
 
     public override void Register(Expr parent)
     {
         // TODO 7:注册操作
+        this.parent = parent;
+        parent?.Update();
+    }
+
+    public async void Compute()
+    {
+        // 计算表达式的值
+        await Task.Delay(100);
+        val = ExprA.Val + ExprB.Val;
     }
 }
