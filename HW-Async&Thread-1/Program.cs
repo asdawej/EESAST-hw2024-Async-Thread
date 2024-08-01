@@ -24,28 +24,13 @@ public class Program
 /// </summary>
 public abstract class Expr
 {
-    /// <summary>
-    /// 父结点
-    /// </summary>
     protected Expr? parent = null;
+    protected readonly object lockObj = new();
 
-    /// <summary>
-    /// 表达式的值，只允许返回一个现成的值，可以加锁
-    /// 拓展思考：是否所有时候读取到的值都是其正确的值？如何避免？
-    /// </summary>
     public abstract int Val { get; }
 
-    /// <summary>
-    /// 异步方法，它的作用是启动一个任务，推动结点自身及其父结点更新值
-    /// 可以根据自身需求适当修改方法签名
-    /// </summary>
     public abstract Task Update();
 
-    /// <summary>
-    /// 注册父结点
-    /// 思考：当父结点被注册后，父结点的值是否需要更新？
-    /// </summary>
-    /// <param name="parent">待注册的父结点</param>
     public abstract void Register(Expr parent);
 }
 
@@ -55,36 +40,49 @@ public abstract class Expr
 /// <param name="initVal">初始值</param>
 public class ValueExpr(int initVal) : Expr
 {
-    int val = initVal;
+    private int val;
+
+    public ValueExpr(int initVal)
+    {
+        val = initVal;
+    }
+
     public override int Val
     {
         get
         {
-            // TODO 1:读取操作
-            return val;
+            lock (lockObj)
+            {
+                return val;
+            }
         }
     }
 
-    /// <summary>
-    /// 修改数据
-    /// 思考：修改数据后，父结点是否也需要更新？
-    /// </summary>
     public int NewVal
     {
         set
         {
-            // TODO 2:修改操作
+            lock (lockObj)
+            {
+                val = value;
+            }
+            _ = Update(); // Trigger asynchronous update
         }
     }
 
     public override async Task Update()
     {
-        // TODO 3:更新操作
+        if (parent != null)
+        {
+            await Task.Delay(100); // Simulate delay
+            await parent.Update();
+        }
     }
 
     public override void Register(Expr parent)
     {
-        // TODO 4:注册操作
+        this.parent = parent;
+        _ = parent.Update();
     }
 }
 
@@ -94,32 +92,48 @@ public class ValueExpr(int initVal) : Expr
 /// </summary>
 public class AddExpr : Expr
 {
-    int val = 0;
-    public override int Val
-    {
-        get
-        {
-            // TODO 5:读取操作
-            return val;
-        }
-    }
+    private int val;
+    public Expr ExprA { get; }
+    public Expr ExprB { get; }
 
-    public Expr ExprA, ExprB;
     public AddExpr(Expr A, Expr B)
     {
         ExprA = A;
         ExprB = B;
         A.Register(this);
         B.Register(this);
+        _ = Update(); // Initialize the value
+    }
+
+    public override int Val
+    {
+        get
+        {
+            lock (lockObj)
+            {
+                return val;
+            }
+        }
     }
 
     public override async Task Update()
     {
-        // TODO 6:更新操作
+        int newVal;
+        await Task.Delay(100); // Simulate delay
+        lock (lockObj)
+        {
+            newVal = ExprA.Val + ExprB.Val;
+            val = newVal;
+        }
+        if (parent != null)
+        {
+            await parent.Update();
+        }
     }
 
     public override void Register(Expr parent)
     {
-        // TODO 7:注册操作
+           this.parent = parent;
+        _ = parent.Update();
     }
 }
