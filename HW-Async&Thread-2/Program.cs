@@ -63,6 +63,7 @@ public static class Program
 /// <param name="initSpeed">初始变化速度，以毫秒计时</param>
 public class TimeVariable(int initVal = 0, int lowerLimit = 0, int higherLimit = 10000, int initSpeed = 1)
 {
+    private readonly object lockObj = new();
     /// <summary>
     /// 变化下限
     /// </summary>
@@ -76,7 +77,7 @@ public class TimeVariable(int initVal = 0, int lowerLimit = 0, int higherLimit =
     /// 计时起点
     /// 思考：如何利用计时起点来完成变量值的更新？
     /// </summary>
-    int time = Environment.TickCount;
+    int lastUpdateTime = Environment.TickCount;
 
     int speed = initSpeed;
     /// <summary>
@@ -87,12 +88,19 @@ public class TimeVariable(int initVal = 0, int lowerLimit = 0, int higherLimit =
         get
         {
             // TODO 1:保护speed的读取
-            return speed;
+            lock (lockObj)
+            {
+                return speed;
+            }
         }
         set
         {
             // TODO 2:请思考speed的改变如何体现在val的变化上？
-            speed = value;
+            lock (lockObj)
+            {
+                UpdateValue(); 
+                speed = value;                
+            }
         }
     }
 
@@ -105,12 +113,38 @@ public class TimeVariable(int initVal = 0, int lowerLimit = 0, int higherLimit =
         get
         {
             // TODO 3:直接返回val是否是这个变量当前时刻的值？当然，可以有不同实现
-            return val;
+            lock (lockObj)
+            {
+                UpdateValue();
+                return val;
+            }
         }
         set
         {
             // TODO 4:保护val的写入
-            val = value;
+            lock (lockObj)
+            {
+                val = value;
+                lastUpdateTime = Environment.TickCount;
+            }
         }
+    }
+
+    private void UpdateValue()
+    {
+        int currentTime = Environment.TickCount;
+        int deltaTime = currentTime - lastUpdateTime;
+        val += speed * deltaTime;
+
+        if (val > HigherLimit)
+        {
+            val = HigherLimit;
+        }
+        else if (val < LowerLimit)
+        {
+            val = LowerLimit;
+        }
+
+        lastUpdateTime = currentTime;
     }
 }
