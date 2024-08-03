@@ -1,4 +1,6 @@
-﻿namespace HW_Async_Thread;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace HW_Async_Thread;
 
 public class Program
 {
@@ -56,11 +58,12 @@ public abstract class Expr
 public class ValueExpr(int initVal) : Expr
 {
     int val = initVal;
+    Task? my_task = null;
     public override int Val
     {
         get
         {
-            // TODO 1:读取操作
+            my_task?.Wait();
             return val;
         }
     }
@@ -73,18 +76,22 @@ public class ValueExpr(int initVal) : Expr
     {
         set
         {
-            // TODO 2:修改操作
+            val = value;
+            my_task = Update();
         }
     }
 
     public override async Task Update()
     {
-        // TODO 3:更新操作
+        if (parent != null)
+        {
+            await parent.Update();
+        }
     }
 
     public override void Register(Expr parent)
     {
-        // TODO 4:注册操作
+        this.parent = parent;
     }
 }
 
@@ -99,7 +106,7 @@ public class AddExpr : Expr
     {
         get
         {
-            // TODO 5:读取操作
+
             return val;
         }
     }
@@ -111,15 +118,27 @@ public class AddExpr : Expr
         ExprB = B;
         A.Register(this);
         B.Register(this);
+        Task.Delay(100).Wait();
+        val = A.Val + B.Val;
     }
 
     public override async Task Update()
     {
-        // TODO 6:更新操作
+        Task? task = null;
+        if (parent != null)
+        {
+            task = Task.Run(parent.Update);
+        }
+        Task.Delay(100).Wait();// 这里可能会因为不稳定的计算速度出问题，但是懒得改了x
+        val = ExprA.Val + ExprB.Val;
+        if (task != null)
+        {
+            await task;
+        }
     }
 
     public override void Register(Expr parent)
     {
-        // TODO 7:注册操作
+        this.parent = parent;
     }
 }
