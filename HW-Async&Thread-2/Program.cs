@@ -64,7 +64,6 @@ public static class Program
 public class TimeVariable(int initVal = 0, int lowerLimit = 0, int higherLimit = 10000, int initSpeed = 1)
 {
     private readonly object lockObj = new();
-
     /// <summary>
     /// 变化下限
     /// </summary>
@@ -98,9 +97,9 @@ public class TimeVariable(int initVal = 0, int lowerLimit = 0, int higherLimit =
         {
             // TODO 2:请思考speed的改变如何体现在val的变化上？
             lock (lockObj)
-            {               
-                speed = value;
-                UpdateValue();
+            {
+                UpdateValue(); 
+                speed = value;                
             }
         }
     }
@@ -126,6 +125,7 @@ public class TimeVariable(int initVal = 0, int lowerLimit = 0, int higherLimit =
             lock (lockObj)
             {
                 val = value;
+                lastUpdateTime = Environment.TickCount;
             }
         }
     }
