@@ -1,4 +1,6 @@
-﻿namespace HW_Async_Thread;
+﻿using System.Security.Cryptography;
+
+namespace HW_Async_Thread;
 
 public class Program
 {
@@ -15,7 +17,8 @@ public class Program
         AddExpr add3 = new(add1, add2);
         Console.WriteLine(add3.Val);
         a.NewVal = 5;
-        Console.WriteLine(add3.Val);
+        Thread.Sleep(100);
+        Console.WriteLine($"Updated value of add3: {add3.Val}");
     }
 }
 
@@ -56,12 +59,15 @@ public abstract class Expr
 public class ValueExpr(int initVal) : Expr
 {
     int val = initVal;
+    private readonly object lockobj=new();
     public override int Val
     {
         get
         {
-            // TODO 1:读取操作
-            return val;
+            lock (lockobj)
+            {
+                return val;
+            }
         }
     }
 
@@ -73,18 +79,26 @@ public class ValueExpr(int initVal) : Expr
     {
         set
         {
-            // TODO 2:修改操作
+            lock (lockobj)
+            {
+                val=value;
+            }
+            _=Update();
         }
     }
 
     public override async Task Update()
     {
-        // TODO 3:更新操作
+        if (parent !=null)
+        {
+            await parent.Update();
+        }
     }
 
     public override void Register(Expr parent)
     {
-        // TODO 4:注册操作
+        this.parent=parent;
+        _=Update();
     }
 }
 
@@ -95,12 +109,15 @@ public class ValueExpr(int initVal) : Expr
 public class AddExpr : Expr
 {
     int val = 0;
+    private readonly object lockobj=new();
     public override int Val
     {
         get
         {
-            // TODO 5:读取操作
-            return val;
+            lock (lockobj)
+            {
+                return val;
+            }
         }
     }
 
@@ -111,15 +128,26 @@ public class AddExpr : Expr
         ExprB = B;
         A.Register(this);
         B.Register(this);
+        _=Update();
     }
 
     public override async Task Update()
     {
-        // TODO 6:更新操作
+        int newVal;
+        lock (lockobj)
+        {
+            newVal=ExprA.Val+ExprB.Val;
+            val=newVal;
+        }
+        if (parent !=null)
+        {
+            await parent.Update();
+        }
     }
 
     public override void Register(Expr parent)
     {
-        // TODO 7:注册操作
+        this.parent=parent;
+        _=Update();
     }
 }
