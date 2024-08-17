@@ -77,8 +77,10 @@ public class TimeVariable(int initVal = 0, int lowerLimit = 0, int higherLimit =
     /// 思考：如何利用计时起点来完成变量值的更新？
     /// </summary>
     int time = Environment.TickCount;
+    int t, p;
 
     int speed = initSpeed;
+    ReaderWriterLockSlim splock = new();
     /// <summary>
     /// 变化速度，以毫秒计时
     /// </summary>
@@ -87,16 +89,30 @@ public class TimeVariable(int initVal = 0, int lowerLimit = 0, int higherLimit =
         get
         {
             // TODO 1:保护speed的读取
-            return speed;
+            splock.EnterReadLock();
+            try
+            {
+                return speed;
+            }
+            finally { splock.ExitReadLock(); }
+
         }
         set
         {
             // TODO 2:请思考speed的改变如何体现在val的变化上？
-            speed = value;
+            splock.EnterWriteLock();
+            try
+            {
+                setv();
+                speed = value;
+            }
+            finally { splock.ExitWriteLock(); }
+
         }
     }
 
     int val = initVal;
+    ReaderWriterLockSlim vlock = new();
     /// <summary>
     /// 变量的值
     /// </summary>
@@ -105,12 +121,36 @@ public class TimeVariable(int initVal = 0, int lowerLimit = 0, int higherLimit =
         get
         {
             // TODO 3:直接返回val是否是这个变量当前时刻的值？当然，可以有不同实现
-            return val;
+            vlock.EnterReadLock();
+            try
+            {
+                setv();
+                return val;
+            }
+            finally { vlock.ExitReadLock(); }
         }
         set
         {
             // TODO 4:保护val的写入
-            val = value;
+            vlock.EnterWriteLock();
+            try
+            {
+                val = value;
+            }
+            finally { vlock.ExitWriteLock(); }
+        }
+    }
+    private readonly object setvLock = new();
+    private void setv()
+    {
+        lock (setvLock)
+        {
+            t = Environment.TickCount;
+            p = val + (t - time) * speed;
+            if (p > HigherLimit) val = HigherLimit;
+            else if (p < LowerLimit) val = LowerLimit;
+            else val = p;
+            time = t;
         }
     }
 }
