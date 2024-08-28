@@ -56,12 +56,16 @@ public abstract class Expr
 public class ValueExpr(int initVal) : Expr
 {
     int val = initVal;
+    private readonly object Obj = new();
     public override int Val
     {
         get
         {
             // TODO 1:读取操作
+            lock(Obj)
+            {
             return val;
+            }
         }
     }
 
@@ -74,17 +78,27 @@ public class ValueExpr(int initVal) : Expr
         set
         {
             // TODO 2:修改操作
+            lock(Obj)
+            {
+                val = value;
+            }
+            _=Update();
         }
     }
 
     public override async Task Update()
     {
         // TODO 3:更新操作
+        if(parent != null)
+        {
+            await parent.Update();
+        }
     }
 
     public override void Register(Expr parent)
     {
         // TODO 4:注册操作
+        this.parent = parent;
     }
 }
 
@@ -95,12 +109,16 @@ public class ValueExpr(int initVal) : Expr
 public class AddExpr : Expr
 {
     int val = 0;
+    private readonly object Obj = new();
     public override int Val
     {
         get
         {
             // TODO 5:读取操作
-            return val;
+            lock(Obj)
+            {
+                return val;
+            }
         }
     }
 
@@ -111,15 +129,25 @@ public class AddExpr : Expr
         ExprB = B;
         A.Register(this);
         B.Register(this);
+        _ = Update();
     }
 
     public override async Task Update()
     {
         // TODO 6:更新操作
+        lock(Obj)
+        {
+            val = ExprA.Val + ExprB.Val;
+        }
+        if(parent != null)
+        {
+            await parent.Update();
+        }
     }
 
     public override void Register(Expr parent)
     {
         // TODO 7:注册操作
+        this.parent = parent;
     }
 }
